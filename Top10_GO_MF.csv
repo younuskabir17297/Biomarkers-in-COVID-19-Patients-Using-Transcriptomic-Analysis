@@ -1,0 +1,2 @@
+"ID","Description","GeneRatio","BgRatio","RichFactor","FoldEnrichment","zScore","pvalue","p.adjust","qvalue","geneID","Count"
+"GO:0034987","immunoglobulin receptor binding","10/2142","16/12520",0.625,3.6531279178338,4.8242679136032,6.18378445278663e-05,0.0623325472840892,0.0623325472840892,"FLNA/ADAM15/ADAM8/IGHG2/IGHA2/IGHM/IGHA1/CLEC4D/IGHG3/IGHG4",10
