@@ -640,21 +640,6 @@ if (!is.null(ekegg_res) && nrow(as.data.frame(ekegg_res)) > 0) {
   print(p2)  # Display the plot
 }
 
-# Reactome Enrichment Barplot (Top 10 pathways)
-if (!is.null(ere_res) && nrow(as.data.frame(ere_res)) > 0) {
-  p1 <- barplot(ere_res, showCategory = 10, title = "Reactome: Top 10 Pathways (Barplot)")
-  ggsave("Reactome_top10_barplot.png", plot = p1, width = 8, height = 6, dpi = 150)
-  print(p1)  # Display the plot
-}
-
-# Reactome Enrichment Dotplot (Top 10 pathways)
-if (!is.null(ere_res) && nrow(as.data.frame(ere_res)) > 0) {
-  p2 <- dotplot(ere_res, showCategory = 10, title = "Reactome: Top 10 Pathways (Dotplot)")
-  ggsave("Reactome_top10_dotplot.png", plot = p2, width = 8, height = 6, dpi = 150)
-  print(p2)  # Display the plot
-}
-
-
 # Relax DEGs filtering (for more DEGs)
 sig <- subset(as.data.frame(res_ord), !is.na(padj) & padj < 0.1 & abs(log2FoldChange) > 0.5)
 deg_ids <- rownames(sig)  # Get DEG gene symbols after relaxing the filters
@@ -670,21 +655,10 @@ bg_ent <- mapIds(org.Hs.eg.db, keys = rownames(filtered_counts), keytype = "SYMB
 bg_ent <- na.omit(bg_ent)  # Remove NAs if present
 cat("Number of background genes:", length(bg_ent), "\n")
 
-# Perform GO enrichment (Molecular Function)
-ego_res_mf <- enrichGO(gene = deg_ent, OrgDb = org.Hs.eg.db, keyType = "ENTREZID", 
-                       ont = "MF", universe = bg_ent, pAdjustMethod = "BH", 
-                       pvalueCutoff = 0.1, readable = TRUE)
-
-# Perform GO enrichment (Cellular Component)
-ego_res_cc <- enrichGO(gene = deg_ent, OrgDb = org.Hs.eg.db, keyType = "ENTREZID", 
-                       ont = "CC", universe = bg_ent, pAdjustMethod = "BH", 
-                       pvalueCutoff = 0.1, readable = TRUE)
-
 # Check if any terms are found for Molecular Function
 if (!is.null(ego_res_mf) && nrow(as.data.frame(ego_res_mf)) > 0) {
   print(ego_res_mf)
 }
-
 # Check if any terms are found for Cellular Component
 if (!is.null(ego_res_cc) && nrow(as.data.frame(ego_res_cc)) > 0) {
   print(ego_res_cc)
@@ -703,50 +677,3 @@ if (!is.null(ego_res_mf) && nrow(as.data.frame(ego_res_mf)) > 0) {
   ggsave("GO_MolecularFunction_dotplot.png", plot = p2, width = 8, height = 6, dpi = 150)
   print(p2)  # Display the plot
 }
-
-
-# ==== Export top-10 pathways/terms from each enrichment ====
-
-# Helper: write top-10 by adjusted p-value (falls back to raw p if ties)
-save_top10 <- function(enrich_obj, out_stem){
-  if (is.null(enrich_obj)) return(invisible(NULL))
-  df <- try(as.data.frame(enrich_obj), silent = TRUE)
-  if (inherits(df, "try-error") || is.null(df) || !nrow(df)) return(invisible(NULL))
-  
-  # sort by adjusted p-value then raw p-value
-  ord <- order(df$p.adjust, df$pvalue, na.last = NA)
-  top10 <- head(df[ord, , drop = FALSE], 10)
-  
-  # CSV
-  write.csv(top10, paste0(out_stem, ".csv"), row.names = FALSE)
-  
-  # XLSX (optional)
-  if (requireNamespace("writexl", quietly = TRUE)) {
-    writexl::write_xlsx(top10, paste0(out_stem, ".xlsx"))
-  }
-  
-  message("Wrote top 10 → ", out_stem, ".csv",
-          if (requireNamespace("writexl", quietly = TRUE)) " and .xlsx" else "")
-}
-
-# Ensure GO:BP exists (you already computed MF/CC; BP is often required by briefs)
-if (!exists("ego_res_bp")) {
-  # Requires: deg_ent (ENTREZ IDs) and bg_ent (ENTREZ universe) defined earlier
-  ego_res_bp <- tryCatch(
-    enrichGO(gene = deg_ent, OrgDb = org.Hs.eg.db, keyType = "ENTREZID",
-             ont = "BP", universe = bg_ent, pAdjustMethod = "BH",
-             pvalueCutoff = 0.05, readable = TRUE),
-    error = function(e) NULL
-  )
-}
-
-# Export top-10 tables for each enrichment you ran
-save_top10(ekegg_res,  "Top10_KEGG_pathways")
-save_top10(ere_res,    "Top10_Reactome_pathways")
-save_top10(ego_res_bp, "Top10_GO_BP")
-save_top10(ego_res_mf, "Top10_GO_MF")
-save_top10(ego_res_cc, "Top10_GO_CC")
-
-
-
-
